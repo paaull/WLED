@@ -38,6 +38,42 @@ uint16_t WS2812FX::mode_static(void) {
   return (SEGMENT.getOption(SEG_OPTION_TRANSITIONAL)) ? FRAMETIME : 350; //update faster if in transition
 }
 
+/*
+ * Custom meteor startup effect
+ */
+uint16_t WS2812FX::mode_meteor_startup() {
+  if (!SEGENV.allocateData(SEGLEN)) return mode_static(); //allocation failed
+
+  byte* trail = SEGENV.data;
+  
+  byte meteorSize= 1+ SEGLEN / 10;
+  uint16_t counter = now * ((SEGMENT.speed >> 2) +8);
+  uint16_t in = counter * SEGLEN >> 16;
+
+  // fade all leds to colors[1] in LEDs one step
+  for (uint16_t i = 0; i < SEGLEN; i++) {
+    if (random8() <= 255 - SEGMENT.intensity)
+    {
+      byte meteorTrailDecay = 128 + random8(127);
+      trail[i] = scale8(trail[i], meteorTrailDecay);
+      setPixelColor(i, color_from_palette(trail[i], false, true, 255));
+    }
+  }
+
+  // draw meteor
+  for(int j = 0; j < meteorSize; j++) {
+    uint16_t index = in + j;
+    if(index >= SEGLEN) {
+      index = (in + j - SEGLEN);
+    }
+
+    trail[index] = 240;
+    setPixelColor(index, color_from_palette(trail[index], false, true, 255));
+  }
+
+  return FRAMETIME;
+}
+
 
 /*
  * Blink/strobe function
